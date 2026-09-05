@@ -1,5 +1,7 @@
 # Wisesight Thai Sentiment & Topic Analyzer
 
+Data from https://github.com/PyThaiNLP/wisesight-sentiment
+
 End-to-end Thai NLP system: **PyThaiNLP preprocessing → WangchanBERTa sentiment (4-class) → BERTopic modeling → FastAPI + dashboards (Streamlit and Next.js + ECharts)**.
 
 > Live demo: _(deploy `app.py` to Streamlit Community Cloud or `web/` to Vercel / Hugging Face Spaces, then paste the link here)_

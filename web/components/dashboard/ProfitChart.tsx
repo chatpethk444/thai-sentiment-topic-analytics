@@ -1,0 +1,4 @@
+"use client";
+import ReactECharts from "echarts-for-react";
+import { profitData } from "../../lib/mock-data";
+export default function ProfitChart(){const option={animationDuration:700,grid:{left:8,right:8,top:18,bottom:20,containLabel:true},tooltip:{trigger:"axis",backgroundColor:"#0f172a",borderWidth:0,textStyle:{color:"#fff"}},xAxis:{type:"category",boundaryGap:false,data:Array.from({length:30},(_,i)=>`Jan ${i+1}`),axisLine:{show:false},axisTick:{show:false},axisLabel:{color:"#94a3b8",fontSize:10,interval:6}},yAxis:{type:"value",show:false},series:[{type:"line",smooth:true,symbol:"none",data:profitData,lineStyle:{width:3,color:"#2563eb"},areaStyle:{color:{type:"linear",x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:"rgba(37,99,235,.25)"},{offset:1,color:"rgba(37,99,235,0)"}]}}}]};return <ReactECharts option={option} style={{height:210,width:"100%"}} opts={{renderer:"svg"}}/>}

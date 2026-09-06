@@ -2,7 +2,88 @@
 
 Data from https://github.com/PyThaiNLP/wisesight-sentiment
 
-End-to-end Thai NLP system: **PyThaiNLP preprocessing → WangchanBERTa sentiment (4-class) → BERTopic modeling → FastAPI + dashboards (Streamlit and Next.js + ECharts)**.
+# Tech Stack — what each piece does in this project
+
+## Python: NLP & ML
+
+| Tech | Version | Role here | Used in |
+|---|---|---|---|
+| PyThaiNLP | 5.3.7 | Cleans + tokenizes Thai (`newmm` engine, Thai stopwords) | `pipeline.py`, `model_engine.py` (BERTopic tokenizer) |
+| torch | 2.14.0 | Tensor backend for WangchanBERTa + sentence embeddings (CPU in Docker, GPU if available) | `model_engine.py` (`resolve_device`) |
+| transformers | 5.16.1 | `sentiment-analysis` pipeline hosting the fine-tuned WangchanBERTa | `model_engine.py` (`SentimentEngine`) |
+| sentencepiece | 0.2.2 | WangchanBERTa subword tokenizer (without it, falls back to TikToken — lower quality) | model loading |
+| sentence-transformers | 6.0.1 | Multilingual embeddings (`paraphrase-multilingual-MiniLM-L12-v2`) for BERTopic | `model_engine.py` (`TopicEngine`) |
+| bertopic | 0.17.4 | Clusters `cleaned_text` into topics, extracts Top-5 keywords per topic (c-TF-IDF) | `model_engine.py` |
+| umap-learn / hdbscan | 0.5.12 / 0.8.44 | Dimensionality reduction + density clustering inside BERTopic | via BERTopic |
+| scikit-learn | 1.9.0 | Middle fallback: TF-IDF + KMeans when BERTopic is unavailable | `model_engine.py` (`_fit_sklearn`) |
+| pandas / numpy | 3.0.5 / 2.4.6 | JSONL→DataFrame, groupby metrics, CSV/parquet artifacts | `pipeline.py`, `model_engine.py`, `main.py` |
+
+## Python: API, dashboard, tests
+
+| Tech | Version | Role here | Used in |
+|---|---|---|---|
+| FastAPI | 0.110.0 | `/analyze`, `/health`, `/topics`, `/dashboard/summary`, `/dashboard/messages` + CORS + validation | `main.py` |
+| uvicorn | 0.28.0 | ASGI server running the API | `Dockerfile`, compose |
+| httpx | 0.28.1 | Test client transport for API tests | `tests/` |
+| Streamlit | 1.56.0 | First dashboard: filters, KPI rings, Plotly charts, raw-text table | `app.py` |
+| plotly | 7.0.0 | Interactive charts in the Streamlit dashboard | `app.py` |
+| pytest | 9.1.1 | 19 tests (preprocessing, engines, API, dashboard JSON) | `tests/` |
+
+## Web dashboard (`web/`)
+
+| Tech | Version | Role here |
+|---|---|---|
+| Next.js | 14.2.35 | App Router + SSR shell, `/` page fetching the FastAPI dashboard endpoints |
+| React / TypeScript | 18 / 5.6 | Filter chips, KPI cards, table, typed API layer (`lib/api.ts`) |
+| Tailwind CSS | 3.4 | Pastel page + dark-lux cards, rings, glowing pills (see `globals.css`) |
+| ECharts (`echarts-for-react`) | 5.5 | Smooth trend lines, filtered-vs-overall radar, activity area, grouped bars |
+
+## Infra
+
+| Tech | Role here |
+|---|---|
+| Docker + compose | One command for all 3 services (`api`, `dashboard`, `web`), CPU-torch image, healthcheck on `/health` |
+| Git + GitHub | Versioning; `outputs/*.csv`, `node_modules`, `.env.local` stay out via `.gitignore` |
+
+# Workflow (short version)
+
+One-way data flow: **zip → cleaned → enriched → API / dashboards**.
+
+```
+data/wisesight-sentiment-1.1.zip
+  │  (zipfile buffer, never extracted; nested huggingface/data.zip supported)
+  ▼
+pipeline.py ── clean (URL/mention/symbols) → newmm tokenize → stopwords
+  │  → cleaned_text, tokens → outputs/cleaned.csv
+  ▼
+model_engine.py ── SentimentEngine (WangchanBERTa 4-class, 3-tier fallback)
+                └─ TopicEngine (BERTopic → TF-IDF/KMeans → keyword rules)
+  │  → predicted_sentiment, score, topic_id, keywords → outputs/enriched.csv
+  ▼
+main.py (FastAPI :8001) ── /analyze ──► single-text inference
+                      ├── /dashboard/summary ──► KPIs + charts
+                      └── /dashboard/messages ──► raw-text table
+  ▼
+app.py (Streamlit :8501) reads CSV directly │  web/ (Next.js :3001) reads via API
+```
+
+## Runtime paths
+
+| Path | Steps |
+|---|---|
+| Batch (regenerate data) | `pipeline.py --out outputs/cleaned.csv` → `model_engine.py --out outputs/enriched.csv` |
+| API | `uvicorn main:app --port 8001` (loads model once, `lru_cache`) |
+| Streamlit | `streamlit run app.py` → artifact if present, else live pipeline+engines |
+| Next.js | `npm run dev` → fetches `/dashboard/*` (`NEXT_PUBLIC_API_URL`) |
+
+## Rules baked in
+
+- Text `< 2` chars → `neu 0.0`, topic `-1`.
+- No GPU/model → rule-based keyword fallbacks (sentiment + topic).
+- `pos` below `--pos-threshold` → `neu` (default off `0` for max accuracy).
+- Dashboard JSON is `NaN`-sanitized; CORS allows any localhost port.
+
+
 
 > Live demo: _(deploy `app.py` to Streamlit Community Cloud or `web/` to Vercel / Hugging Face Spaces, then paste the link here)_
 

@@ -2,7 +2,7 @@
 
 Data from https://github.com/PyThaiNLP/wisesight-sentiment
 
-# Tech Stack — what each piece does in this project
+# Tech Stack 
 
 ## Python: NLP & ML
 

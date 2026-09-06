@@ -84,18 +84,6 @@ app.py (Streamlit :8501) reads CSV directly │  web/ (Next.js :3001) reads via 
 - Dashboard JSON is `NaN`-sanitized; CORS allows any localhost port.
 
 
-
-> Live demo: _(deploy `app.py` to Streamlit Community Cloud or `web/` to Vercel / Hugging Face Spaces, then paste the link here)_
-
-## Features
-
-- Thai text cleaning + `newmm` tokenization + stopword removal (PyThaiNLP), reading `train.jsonl` straight from the zip (nested `huggingface/data.zip`) with no disk extraction.
-- 4-class sentiment (`pos` / `neg` / `neu` / `q`) via official fine-tuned WangchanBERTa, with hybrid rule fallback for 3-label community models and pure rule-based fallback when no model/GPU is available.
-- Topic modeling with a 3-tier fallback: BERTopic → TF-IDF/KMeans → keyword rules. Short text (`< 2` chars) → `neu 0.0`, topic `-1` (per `SKILL.md`).
-- FastAPI backend (`POST /analyze`, `GET /health`, `GET /topics`, `GET /dashboard/summary`, `GET /dashboard/messages`).
-- Two dashboards over the same data: Streamlit (`app.py`) and Next.js + Tailwind + ECharts (`web/`).
-- 19 pytest tests, Dockerfile + docker-compose for all three services.
-
 ## Architecture
 
 ```mermaid
@@ -111,6 +99,18 @@ flowchart LR
     DASH --> WEB[web/ Next.js + ECharts]
     ENR --> UI[app.py Streamlit]
 ```
+
+
+> Live demo: _(deploy `app.py` to Streamlit Community Cloud or `web/` to Vercel / Hugging Face Spaces, then paste the link here)_
+
+## Features
+
+- Thai text cleaning + `newmm` tokenization + stopword removal (PyThaiNLP), reading `train.jsonl` straight from the zip (nested `huggingface/data.zip`) with no disk extraction.
+- 4-class sentiment (`pos` / `neg` / `neu` / `q`) via official fine-tuned WangchanBERTa, with hybrid rule fallback for 3-label community models and pure rule-based fallback when no model/GPU is available.
+- Topic modeling with a 3-tier fallback: BERTopic → TF-IDF/KMeans → keyword rules. Short text (`< 2` chars) → `neu 0.0`, topic `-1` (per `SKILL.md`).
+- FastAPI backend (`POST /analyze`, `GET /health`, `GET /topics`, `GET /dashboard/summary`, `GET /dashboard/messages`).
+- Two dashboards over the same data: Streamlit (`app.py`) and Next.js + Tailwind + ECharts (`web/`).
+- 19 pytest tests, Dockerfile + docker-compose for all three services.
 
 Fallback chains (the system stays usable without GPU / without models):
 
